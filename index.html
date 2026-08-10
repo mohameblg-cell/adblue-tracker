@@ -171,6 +171,7 @@
         .col-time { width: 75px; }
         .col-bon { width: 70px; }
         .col-truck { width: 110px; }
+        .col-km { width: 100px; }
         .col-qty { width: 80px; }
         .col-total { width: 95px; font-weight: 700; }
         .col-stock { width: 95px; font-weight: 700; }
@@ -430,6 +431,7 @@
                             <th class="col-time">التوقيت</th>
                             <th class="col-bon">رقم البون</th>
                             <th class="col-truck">رقم الشاحنة</th>
+                            <th class="col-km">الكيلومتراج</th>
                             <th class="col-qty">الكمية المعبأة (لتر)</th>
                             <th class="col-total">إجمالي المستهلك (لتر)</th>
                             <th class="col-stock">المخزون المتبقي (لتر)</th>
@@ -444,6 +446,7 @@
                             <td class="col-time">&mdash;</td>
                             <td class="col-bon">&mdash;</td>
                             <td class="col-truck">&mdash;</td>
+                            <td class="col-km">&mdash;</td>
                             <td class="col-qty">&mdash;</td>
                             <td class="col-total">0</td>
                             <td class="col-stock">1000</td>
@@ -456,6 +459,7 @@
                             <td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
+                            <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -471,6 +475,7 @@
                             <td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
+                            <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -486,6 +491,7 @@
                             <td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
+                            <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -501,6 +507,7 @@
                             <td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
+                            <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -516,6 +523,7 @@
                             <td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
+                            <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -680,6 +688,7 @@
                 '<td class="col-time"><input type="time" class="inp-time" onchange="scheduleSave()"></td>' +
                 '<td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>' +
                 '<td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>' +
+                '<td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>' +
                 '<td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>' +
                 '<td class="col-total cell-total">0</td>' +
                 '<td class="col-stock cell-stock">1000</td>' +
@@ -759,6 +768,7 @@
                 '<td class="col-time">&mdash;</td>' +
                 '<td class="col-bon">&mdash;</td>' +
                 '<td class="col-truck">&mdash;</td>' +
+                '<td class="col-km">&mdash;</td>' +
                 '<td class="col-qty">&mdash;</td>' +
                 '<td class="col-total">0</td>' +
                 '<td class="col-stock">1000</td>' +
@@ -788,6 +798,7 @@
                     time: row.querySelector('.inp-time') ? row.querySelector('.inp-time').value : '',
                     bon: row.querySelector('.inp-bon') ? row.querySelector('.inp-bon').value : '',
                     truck: row.querySelector('.inp-truck') ? row.querySelector('.inp-truck').value : '',
+                    km: row.querySelector('.inp-km') ? row.querySelector('.inp-km').value : '',
                     qty: row.querySelector('.inp-qty') ? row.querySelector('.inp-qty').value : ''
                 });
             });
@@ -839,6 +850,7 @@
                 '<td class="col-time">&mdash;</td>' +
                 '<td class="col-bon">&mdash;</td>' +
                 '<td class="col-truck">&mdash;</td>' +
+                '<td class="col-km">&mdash;</td>' +
                 '<td class="col-qty">&mdash;</td>' +
                 '<td class="col-total">0</td>' +
                 '<td class="col-stock">1000</td>' +
@@ -852,6 +864,7 @@
                 tr.querySelector('.inp-time').value = rowData.time || '';
                 tr.querySelector('.inp-bon').value = rowData.bon || '';
                 tr.querySelector('.inp-truck').value = rowData.truck || '';
+                tr.querySelector('.inp-km').value = rowData.km || '';
                 tr.querySelector('.inp-qty').value = rowData.qty || '';
                 tbody.appendChild(tr);
             });
