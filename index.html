@@ -357,7 +357,9 @@
         .entries-section { margin-top: 28px; }
         .entries-head { display: flex; justify-content: space-between; align-items: center; margin: 0 20px 10px; }
         .entries-head h3 { font-size: 15px; color: #1a365d; font-weight: 800; }
-        .entries-table { min-width: 560px; }
+        .entries-table { min-width: 860px; }
+        .table-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 20px 10px; }
+        .entries-head .table-tools { margin: 0; }
         .entries-table tfoot td { background: #edf2f7 !important; font-weight: 800; }
         .entries-table tfoot td.alert-safe { background: #f0fff4 !important; }
         .entries-table tfoot td.alert-warn { background: #fffaf0 !important; }
@@ -417,9 +419,6 @@
         </div>
         <div class="toolbar">
             <button class="btn" style="background:#1a365d;color:white;" onclick="showInstallGuide()">📲 تثبيت كتطبيق</button>
-            <button class="btn btn-green" onclick="addRow()">+ إضافة صف</button>
-            <button class="btn btn-red" onclick="removeRow()">- حذف صف</button>
-            <button class="btn btn-orange" onclick="clearAll()">مسح الكل</button>
             <button class="btn btn-blue" onclick="exportPDF()">تصدير PDF</button>
             <button class="btn btn-purple" onclick="window.print()">طباعة</button>
             <button class="btn" style="background:#2b6cb0;color:white;" onclick="loadData()">↻ تحديث من الأونلاين</button>
@@ -432,6 +431,11 @@
             <div class="pdf-title">
                 <h2>جدول تتبع استهلاك الديزل الأزرق - l'AdBlue</h2>
                 <div class="date-line"><bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi> &mdash; تاريخ التقرير: <bdi id="repDate" style="unicode-bidi: isolate; direction: ltr;"></bdi></div>
+            </div>
+            <div class="table-tools no-pdf">
+                <button class="btn btn-green" onclick="addRow()">+ إضافة صف</button>
+                <button class="btn btn-red" onclick="removeRow()">- حذف صف</button>
+                <button class="btn btn-orange" onclick="clearAll()">مسح الكل</button>
             </div>
             <div class="table-wrapper">
                 <table class="main-table" id="mainTable">
@@ -550,16 +554,22 @@
             <div class="entries-section">
                 <div class="entries-head">
                     <h3>جدول دخول المخزون (AdBlue)</h3>
-                    <button class="btn btn-green no-pdf" onclick="addEntry()">+ إضافة دخول</button>
+                    <div class="table-tools no-pdf">
+                        <button class="btn btn-green" onclick="addEntry()">+ إضافة صف</button>
+                        <button class="btn btn-red" onclick="removeEntry()">- حذف صف</button>
+                        <button class="btn btn-orange" onclick="clearEntries()">مسح الكل</button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table class="main-table entries-table" id="entriesTable">
                         <thead>
                             <tr>
                                 <th class="col-num">#</th>
-                                <th>التاريخ</th>
-                                <th>التوقيت</th>
+                                <th>تاريخ الدخول</th>
+                                <th>توقيت الدخول</th>
                                 <th>الكمية الداخلة (لتر)</th>
+                                <th>تاريخ الاستهلاك</th>
+                                <th>توقيت الاستهلاك</th>
                                 <th>الكمية المستهلكة (لتر)</th>
                                 <th>المتبقي (لتر)</th>
                                 <th>المكان / الوجهة</th>
@@ -571,6 +581,7 @@
                             <tr>
                                 <td colspan="3">الإجمالي</td>
                                 <td id="tfIn">0</td>
+                                <td colspan="2"></td>
                                 <td id="tfCons">0</td>
                                 <td id="tfRem">0</td>
                                 <td></td>
@@ -578,7 +589,7 @@
                             </tr>
                             <tr>
                                 <td colspan="3">حالة التنبيه (إجمالي المخزون)</td>
-                                <td colspan="4" id="tfAlert">—</td>
+                                <td colspan="6" id="tfAlert">—</td>
                                 <td class="col-actions"></td>
                             </tr>
                         </tfoot>
@@ -686,6 +697,8 @@
                 '<td><input type="date" class="e-date" onchange="scheduleSave()"></td>' +
                 '<td><input type="time" class="e-time" onchange="scheduleSave()"></td>' +
                 '<td><input type="number" class="e-qty" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
+                '<td><input type="date" class="e-cdate" onchange="scheduleSave()"></td>' +
+                '<td><input type="time" class="e-ctime" onchange="scheduleSave()"></td>' +
                 '<td><input type="number" class="e-cons" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
                 '<td class="e-rem col-total">0</td>' +
                 '<td><input type="text" class="e-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>' +
@@ -694,6 +707,8 @@
             tr.querySelector('.e-time').value = d.time || '';
             tr.querySelector('.e-qty').value = d.qty || '';
             tr.querySelector('.e-cons').value = d.cons || '';
+            tr.querySelector('.e-cdate').value = d.cdate || '';
+            tr.querySelector('.e-ctime').value = d.ctime || '';
             tr.querySelector('.e-place').value = d.place || '';
             return tr;
         }
@@ -732,6 +747,23 @@
             recalc();
         }
 
+        function removeEntry() {
+            const body = document.getElementById('entriesBody');
+            if (body.children.length > 1) {
+                body.removeChild(body.lastElementChild);
+                renumberEntries();
+            } else {
+                body.querySelectorAll('input').forEach(function(i) { i.value = ''; });
+            }
+            recalc();
+        }
+
+        function clearEntries() {
+            if (!confirm('هل أنت متأكد من مسح بيانات جدول الدخول؟')) return;
+            buildEntries([]);
+            recalc();
+        }
+
         function collectEntries() {
             return Array.from(document.querySelectorAll('#entriesBody tr')).map(function(tr) {
                 return {
@@ -739,6 +771,8 @@
                     time: tr.querySelector('.e-time').value,
                     qty: tr.querySelector('.e-qty').value,
                     cons: tr.querySelector('.e-cons').value,
+                    cdate: tr.querySelector('.e-cdate').value,
+                    ctime: tr.querySelector('.e-ctime').value,
                     place: tr.querySelector('.e-place').value
                 };
             });
@@ -903,7 +937,7 @@
         }
 
         function clearAll() {
-            if (!confirm('هل أنت متأكد من مسح جميع البيانات؟')) return;
+            if (!confirm('هل أنت متأكد من مسح بيانات الجدول الأول؟')) return;
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             const zero = document.createElement('tr');
@@ -922,7 +956,6 @@
             tbody.appendChild(zero);
             tbody.appendChild(rowTemplate(1));
             rowCount = 1;
-            buildEntries([]);
             recalc();
         }
 
@@ -1053,7 +1086,7 @@
             }).then(function(res) { return res.ok ? res.json() : null; })
               .then(function(json) {
                   if (!json || !json.record) return;
-                  const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.place; }); };
+                  const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); };
                   const remoteStr = JSON.stringify([json.record.rows, ne(json.record.entries)]);
                   const localSnap = collectData();
                   const localStr = JSON.stringify([localSnap.rows, ne(localSnap.entries)]);
