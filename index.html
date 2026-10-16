@@ -358,6 +358,10 @@
         .entries-head { display: flex; justify-content: space-between; align-items: center; margin: 0 20px 10px; }
         .entries-head h3 { font-size: 15px; color: #1a365d; font-weight: 800; }
         .entries-table { min-width: 560px; }
+        .entries-table tfoot td { background: #edf2f7 !important; font-weight: 800; }
+        .entries-table tfoot td.alert-safe { background: #f0fff4 !important; }
+        .entries-table tfoot td.alert-warn { background: #fffaf0 !important; }
+        .entries-table tfoot td.alert-danger { background: #fff5f5 !important; }
 
         .stock-banner { margin: 12px 20px; padding: 12px 16px; border-radius: 8px; background: #fffaf0; border-right: 4px solid #dd6b20; color: #c05621; font-weight: 800; font-size: 13px; }
 
@@ -558,12 +562,26 @@
                                 <th>الكمية الداخلة (لتر)</th>
                                 <th>الكمية المستهلكة (لتر)</th>
                                 <th>المتبقي (لتر)</th>
-                                <th>حالة التنبيه</th>
                                 <th>المكان / الوجهة</th>
                                 <th class="col-actions">إجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="entriesBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">الإجمالي</td>
+                                <td id="tfIn">0</td>
+                                <td id="tfCons">0</td>
+                                <td id="tfRem">0</td>
+                                <td></td>
+                                <td class="col-actions"></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3">حالة التنبيه (إجمالي المخزون)</td>
+                                <td colspan="4" id="tfAlert">—</td>
+                                <td class="col-actions"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -670,7 +688,6 @@
                 '<td><input type="number" class="e-qty" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
                 '<td><input type="number" class="e-cons" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
                 '<td class="e-rem col-total">0</td>' +
-                '<td class="e-alert col-alert">—</td>' +
                 '<td><input type="text" class="e-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>' +
                 '<td class="col-actions"><button class="row-btn row-btn-del" onclick="deleteEntry(this)" title="حذف">🗑</button></td>';
             tr.querySelector('.e-date').value = d.date || '';
@@ -772,26 +789,32 @@
                 }
             });
 
+            let tIn = 0, tCons = 0;
             document.querySelectorAll('#entriesBody tr').forEach(function(tr) {
                 const q = parseFloat(tr.querySelector('.e-qty').value) || 0;
                 const cs = parseFloat(tr.querySelector('.e-cons').value) || 0;
-                const rem = round3(q - cs);
-                const al = tr.querySelector('.e-alert');
-                tr.querySelector('.e-rem').textContent = rem;
-                al.className = 'e-alert col-alert';
-                if (!q && !cs) {
-                    al.textContent = '—';
-                } else if (rem <= 0) {
-                    al.classList.add('alert-danger');
-                    al.textContent = 'نافد! اطلب فورا';
-                } else if (rem <= 1000) {
-                    al.classList.add('alert-warn');
-                    al.textContent = 'وصل المتبقي 1000 لتر';
-                } else {
-                    al.classList.add('alert-safe');
-                    al.textContent = 'آمن';
-                }
+                tr.querySelector('.e-rem').textContent = round3(q - cs);
+                tIn = round3(tIn + q);
+                tCons = round3(tCons + cs);
             });
+            const tRem = round3(tIn - tCons);
+            document.getElementById('tfIn').textContent = tIn;
+            document.getElementById('tfCons').textContent = tCons;
+            document.getElementById('tfRem').textContent = tRem;
+            const tfAl = document.getElementById('tfAlert');
+            tfAl.className = '';
+            if (!tIn && !tCons) {
+                tfAl.textContent = '—';
+            } else if (tRem <= 0) {
+                tfAl.classList.add('alert-danger');
+                tfAl.textContent = 'نافد! اطلب فورا';
+            } else if (tRem <= 1000) {
+                tfAl.classList.add('alert-warn');
+                tfAl.textContent = 'وصل المتبقي الإجمالي 1000 لتر';
+            } else {
+                tfAl.classList.add('alert-safe');
+                tfAl.textContent = 'آمن';
+            }
 
             document.getElementById('stRows').textContent = rows.length;
             document.getElementById('stTotal').textContent = cumulative;
