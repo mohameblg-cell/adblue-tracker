@@ -395,6 +395,8 @@
             .table-wrapper { overflow: visible; border: none; box-shadow: none; margin: 0; }
             .main-table { min-width: 100%; width: 100%; }
             .col-actions, .no-pdf { display: none !important; }
+            body.print-main #entriesSection { display: none !important; }
+            body.print-entries #mainSection { display: none !important; }
         }
     </style>
 <base target="_blank">
@@ -419,9 +421,6 @@
         </div>
         <div class="toolbar">
             <button class="btn" style="background:#1a365d;color:white;" onclick="showInstallGuide()">📲 تثبيت كتطبيق</button>
-            <button class="btn btn-blue" onclick="exportPDF()">تصدير PDF</button>
-            <button class="btn btn-purple" onclick="window.print()">طباعة</button>
-            <button class="btn" style="background:#2b6cb0;color:white;" onclick="loadData()">↻ تحديث من الأونلاين</button>
         </div>
         <div class="info-box">
             <strong>كيفية الاستخدام:</strong> اكتب التاريخ، رقم البون، رقم الشاحنة، والكمية المعبأة. يتم حساب <strong>إجمالي المستهلك</strong> و <strong>المخزون المتبقي</strong> تلقائياً. يتغير <strong>لون التنبيه</strong> حسب المخزون: آمن | مراقبة (&lt;300لتر) | طلب جديد (&lt;200لتر).
@@ -432,10 +431,14 @@
                 <h2>جدول تتبع استهلاك الديزل الأزرق - l'AdBlue</h2>
                 <div class="date-line"><bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi> &mdash; تاريخ التقرير: <bdi id="repDate" style="unicode-bidi: isolate; direction: ltr;"></bdi></div>
             </div>
+            <div id="mainSection">
             <div class="table-tools no-pdf">
                 <button class="btn btn-green" onclick="addRow()">+ إضافة صف</button>
                 <button class="btn btn-red" onclick="removeRow()">- حذف صف</button>
                 <button class="btn btn-orange" onclick="clearAll()">مسح الكل</button>
+                <button class="btn btn-blue" onclick="exportPDF('main')">تصدير PDF</button>
+                <button class="btn btn-purple" onclick="printTable('main')">طباعة</button>
+                <button class="btn" style="background:#2c7a7b;color:white;" onclick="loadData('main')">↻ تحديث من الأونلاين</button>
             </div>
             <div class="table-wrapper">
                 <table class="main-table" id="mainTable">
@@ -551,13 +554,17 @@
                     </tbody>
                 </table>
             </div>
-            <div class="entries-section">
+            </div>
+            <div class="entries-section" id="entriesSection">
                 <div class="entries-head">
                     <h3>جدول دخول المخزون (AdBlue)</h3>
                     <div class="table-tools no-pdf">
                         <button class="btn btn-green" onclick="addEntry()">+ إضافة صف</button>
                         <button class="btn btn-red" onclick="removeEntry()">- حذف صف</button>
                         <button class="btn btn-orange" onclick="clearEntries()">مسح الكل</button>
+                        <button class="btn btn-blue" onclick="exportPDF('entries')">تصدير PDF</button>
+                        <button class="btn btn-purple" onclick="printTable('entries')">طباعة</button>
+                        <button class="btn" style="background:#2c7a7b;color:white;" onclick="loadData('entries')">↻ تحديث من الأونلاين</button>
                     </div>
                 </div>
                 <div class="table-wrapper">
@@ -1018,7 +1025,7 @@
             }
         }
 
-        function applyData(payload) {
+        function applyData(payload, only) {
             if (!payload || !Array.isArray(payload.rows)) return;
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -1048,7 +1055,7 @@
                 tbody.appendChild(tr);
             });
 
-            buildEntries(payload.entries || []);
+            if (only !== 'main') buildEntries(payload.entries || []);
             rowCount = payload.rows.length;
             const wasLoading = isLoadingInitial;
             isLoadingInitial = true;
@@ -1056,7 +1063,7 @@
             isLoadingInitial = wasLoading;
         }
 
-        async function loadData() {
+        async function loadData(which) {
             showSyncIndicator('جاري تحميل البيانات...', 'saving');
             try {
                 const res = await fetch(JSONBIN_URL + '/latest', {
@@ -1067,7 +1074,7 @@
                 const json = await res.json();
                 const payload = json.record;
                 isLoadingInitial = true;
-                applyData(payload);
+                if (which === 'entries') { buildEntries(payload.entries || []); recalc(); } else { applyData(payload, which); }
                 showSyncIndicator('✓ تم التحميل من الأونلاين', 'saved');
             } catch (e) {
                 console.error('تعذر تحميل البيانات الأونلاين:', e);
@@ -1130,10 +1137,22 @@
             event.target.value = '';
         }
 
-        function exportPDF() {
+        function printTable(which) {
+            const cleanup = function() { document.body.classList.remove('print-main', 'print-entries'); };
+            document.body.classList.add('print-' + which);
+            window.addEventListener('afterprint', cleanup, { once: true });
+            setTimeout(cleanup, 60000);
+            window.print();
+        }
+
+        function exportPDF(which) {
             const loading = document.getElementById('loading');
             loading.classList.add('active');
             const element = document.getElementById('pdfArea');
+            const hideEls = [];
+            if (which === 'main') hideEls.push(document.getElementById('entriesSection'));
+            if (which === 'entries') hideEls.push(document.getElementById('mainSection'));
+            hideEls.forEach(function(e) { e.style.display = 'none'; });
 
             // إخفاء النص التوضيحي (placeholder) مؤقتاً فالخانات الفارغة باش ما يبانش فالـ PDF
             const inputs = element.querySelectorAll('input');
@@ -1149,7 +1168,7 @@
 
             const opt = {
                 margin: [8, 8, 8, 8],
-                filename: 'AdBlue_Azeddine_' + new Date().toISOString().split('T')[0] + '.pdf',
+                filename: 'AdBlue_Azeddine_' + (which === 'entries' ? 'Entrees_' : which === 'main' ? 'Consommation_' : '') + new Date().toISOString().split('T')[0] + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
@@ -1159,6 +1178,7 @@
             function restoreAll() {
                 inputs.forEach(function(inp, i) { inp.placeholder = savedPlaceholders[i]; });
                 actionCells.forEach(function(c) { c.style.display = ''; });
+                hideEls.forEach(function(e) { e.style.display = ''; });
             }
 
             html2pdf().set(opt).from(element).save()
