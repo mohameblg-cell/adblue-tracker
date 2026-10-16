@@ -354,6 +354,11 @@
             margin-bottom: 8px;
         }
 
+        .entries-section { margin-top: 28px; }
+        .entries-head { display: flex; justify-content: space-between; align-items: center; margin: 0 20px 10px; }
+        .entries-head h3 { font-size: 15px; color: #1a365d; font-weight: 800; }
+        .entries-table { min-width: 560px; }
+
         /* ===== MOBILE FIXES ===== */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -381,7 +386,7 @@
             .toolbar, .info-box, .stats, .app-foot, .save-indicator { display: none !important; }
             .table-wrapper { overflow: visible; border: none; box-shadow: none; margin: 0; }
             .main-table { min-width: 100%; width: 100%; }
-            .col-actions { display: none !important; }
+            .col-actions, .no-pdf { display: none !important; }
         }
     </style>
 <base target="_blank">
@@ -536,6 +541,27 @@
                     </tbody>
                 </table>
             </div>
+            <div class="entries-section">
+                <div class="entries-head">
+                    <h3>جدول دخول المخزون (AdBlue)</h3>
+                    <button class="btn btn-green no-pdf" onclick="addEntry()">+ إضافة دخول</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="main-table entries-table" id="entriesTable">
+                        <thead>
+                            <tr>
+                                <th class="col-num">#</th>
+                                <th>التاريخ</th>
+                                <th>التوقيت</th>
+                                <th>الكمية الداخلة (لتر)</th>
+                                <th>المكان / الوجهة</th>
+                                <th class="col-actions">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entriesBody"></tbody>
+                    </table>
+                </div>
+            </div>
             <div class="watermark-box">
                 <div class="watermark-text">AZEDDINE BELGAOUI G4S</div>
             </div>
@@ -547,6 +573,7 @@
             <div class="stat-card"><div class="val" id="stRows">6</div><div class="lab">عدد السجلات</div></div>
             <div class="stat-card"><div class="val" id="stTotal">0</div><div class="lab">إجمالي المستهلك</div></div>
             <div class="stat-card"><div class="val" id="stStock">1000</div><div class="lab">المخزون المتبقي</div></div>
+            <div class="stat-card"><div class="val" id="stIn">0</div><div class="lab">إجمالي الداخل</div></div>
             <div class="stat-card"><div class="val" id="stAvg">0</div><div class="lab">متوسط التعبئة</div></div>
         </div>
         <div class="app-foot">
@@ -629,6 +656,67 @@
             document.getElementById('repDate').textContent = dd + '/' + mm + '/' + yyyy;
         })();
 
+        function entryRow(d) {
+            d = d || {};
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td class="col-num"></td>' +
+                '<td><input type="date" class="e-date" onchange="scheduleSave()"></td>' +
+                '<td><input type="time" class="e-time" onchange="scheduleSave()"></td>' +
+                '<td><input type="number" class="e-qty" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
+                '<td><input type="text" class="e-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>' +
+                '<td class="col-actions"><button class="row-btn row-btn-del" onclick="deleteEntry(this)" title="حذف">🗑</button></td>';
+            tr.querySelector('.e-date').value = d.date || '';
+            tr.querySelector('.e-time').value = d.time || '';
+            tr.querySelector('.e-qty').value = d.qty || '';
+            tr.querySelector('.e-place').value = d.place || '';
+            return tr;
+        }
+
+        function renumberEntries() {
+            document.querySelectorAll('#entriesBody tr').forEach(function(tr, i) {
+                tr.querySelector('.col-num').textContent = i + 1;
+            });
+        }
+
+        function buildEntries(list) {
+            const body = document.getElementById('entriesBody');
+            body.innerHTML = '';
+            (list && list.length ? list : [{}]).forEach(function(d) { body.appendChild(entryRow(d)); });
+            renumberEntries();
+        }
+
+        function addEntry() {
+            const tr = entryRow();
+            document.getElementById('entriesBody').appendChild(tr);
+            renumberEntries();
+            recalc();
+            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function deleteEntry(btn) {
+            const body = document.getElementById('entriesBody');
+            if (body.children.length <= 1) {
+                const tr = btn.closest('tr');
+                tr.querySelectorAll('input').forEach(function(i) { i.value = ''; });
+            } else {
+                if (!confirm('هل تريد حذف هذا الصف؟')) return;
+                btn.closest('tr').remove();
+                renumberEntries();
+            }
+            recalc();
+        }
+
+        function collectEntries() {
+            return Array.from(document.querySelectorAll('#entriesBody tr')).map(function(tr) {
+                return {
+                    date: tr.querySelector('.e-date').value,
+                    time: tr.querySelector('.e-time').value,
+                    qty: tr.querySelector('.e-qty').value,
+                    place: tr.querySelector('.e-place').value
+                };
+            });
+        }
+
         function round3(n) {
             return Math.round((n + Number.EPSILON) * 1000) / 1000;
         }
@@ -636,6 +724,8 @@
         function recalc() {
             const rows = document.querySelectorAll('#tableBody tr[data-row]');
             let cumulative = 0;
+            let received = 0;
+            document.querySelectorAll('#entriesBody .e-qty').forEach(function(i) { received = round3(received + (parseFloat(i.value) || 0)); });
             let filledCount = 0;
             let totalFilled = 0;
 
@@ -645,7 +735,7 @@
                 const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
                 cumulative = round3(cumulative + qty);
                 if (qty > 0) { filledCount++; totalFilled += qty; }
-                const stock = round3(TANK_CAPACITY - cumulative);
+                const stock = round3(TANK_CAPACITY + received - cumulative);
 
                 const cellTotal = row.querySelector('.cell-total');
                 const cellStock = row.querySelector('.cell-stock');
@@ -674,7 +764,8 @@
 
             document.getElementById('stRows').textContent = rows.length;
             document.getElementById('stTotal').textContent = cumulative;
-            document.getElementById('stStock').textContent = round3(TANK_CAPACITY - cumulative);
+            document.getElementById('stStock').textContent = round3(TANK_CAPACITY + received - cumulative);
+            document.getElementById('stIn').textContent = received;
             document.getElementById('stAvg').textContent = filledCount > 0 ? Math.round(totalFilled / filledCount) : 0;
 
             scheduleSave();
@@ -777,6 +868,7 @@
             tbody.appendChild(zero);
             tbody.appendChild(rowTemplate(1));
             rowCount = 1;
+            buildEntries([]);
             recalc();
         }
 
@@ -802,7 +894,7 @@
                     qty: row.querySelector('.inp-qty') ? row.querySelector('.inp-qty').value : ''
                 });
             });
-            return { rowCount: rowCount, rows: data, savedAt: new Date().toISOString() };
+            return { rowCount: rowCount, rows: data, entries: collectEntries(), savedAt: new Date().toISOString() };
         }
 
         async function saveData() {
@@ -869,6 +961,7 @@
                 tbody.appendChild(tr);
             });
 
+            buildEntries(payload.entries || []);
             rowCount = payload.rows.length;
             const wasLoading = isLoadingInitial;
             isLoadingInitial = true;
@@ -906,8 +999,10 @@
             }).then(function(res) { return res.ok ? res.json() : null; })
               .then(function(json) {
                   if (!json || !json.record) return;
-                  const remoteStr = JSON.stringify(json.record.rows);
-                  const localStr = JSON.stringify(collectData().rows);
+                  const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.place; }); };
+                  const remoteStr = JSON.stringify([json.record.rows, ne(json.record.entries)]);
+                  const localSnap = collectData();
+                  const localStr = JSON.stringify([localSnap.rows, ne(localSnap.entries)]);
                   if (remoteStr !== localStr) {
                       isLoadingInitial = true;
                       applyData(json.record);
@@ -962,7 +1057,7 @@
             });
 
             // إخفاء عمود "إجراءات" (أزرار الحذف/الإضافة) مؤقتاً، ماخصهاش تبان فالـ PDF
-            const actionCells = element.querySelectorAll('.col-actions');
+            const actionCells = element.querySelectorAll('.col-actions, .no-pdf');
             actionCells.forEach(function(c) { c.style.display = 'none'; });
 
             const opt = {
@@ -993,6 +1088,7 @@
             if (e.ctrlKey && e.key === 'p') { /* allow default print */ }
         });
 
+        buildEntries([]);
         loadData();
         recalc();
     </script>
