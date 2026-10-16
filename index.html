@@ -359,6 +359,8 @@
         .entries-head h3 { font-size: 15px; color: #1a365d; font-weight: 800; }
         .entries-table { min-width: 560px; }
 
+        .stock-banner { margin: 12px 20px; padding: 12px 16px; border-radius: 8px; background: #fffaf0; border-right: 4px solid #dd6b20; color: #c05621; font-weight: 800; font-size: 13px; }
+
         /* ===== MOBILE FIXES ===== */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -422,6 +424,7 @@
             <strong>كيفية الاستخدام:</strong> اكتب التاريخ، رقم البون، رقم الشاحنة، والكمية المعبأة. يتم حساب <strong>إجمالي المستهلك</strong> و <strong>المخزون المتبقي</strong> تلقائياً. يتغير <strong>لون التنبيه</strong> حسب المخزون: آمن | مراقبة (&lt;300لتر) | طلب جديد (&lt;200لتر).
             <br><strong>الحفظ التلقائي أونلاين:</strong> يتم حفظ بياناتك تلقائياً على الإنترنت — يمكنك فتح هذا الملف من أي جهاز أو متصفح وستجد نفس البيانات. تتزامن الصفحة تلقائياً كل 15 ثانية، أو اضغط "تحديث من الأونلاين" لتحديث فوري.
         </div>
+        <div class="stock-banner" id="stockBanner" style="display:none;"></div>
         <div id="pdfArea">
             <div class="pdf-title">
                 <h2>جدول تتبع استهلاك الديزل الأزرق - l'AdBlue</h2>
@@ -554,6 +557,7 @@
                                 <th>التاريخ</th>
                                 <th>التوقيت</th>
                                 <th>الكمية الداخلة (لتر)</th>
+                                <th>الكمية المستهلكة (لتر)</th>
                                 <th>المكان / الوجهة</th>
                                 <th class="col-actions">إجراءات</th>
                             </tr>
@@ -663,6 +667,7 @@
                 '<td><input type="date" class="e-date" onchange="scheduleSave()"></td>' +
                 '<td><input type="time" class="e-time" onchange="scheduleSave()"></td>' +
                 '<td><input type="number" class="e-qty" min="0" step="any" placeholder="0" oninput="recalc()"></td>' +
+                '<td class="e-cons col-total">0</td>' +
                 '<td><input type="text" class="e-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>' +
                 '<td class="col-actions"><button class="row-btn row-btn-del" onclick="deleteEntry(this)" title="حذف">🗑</button></td>';
             tr.querySelector('.e-date').value = d.date || '';
@@ -725,6 +730,7 @@
             const rows = document.querySelectorAll('#tableBody tr[data-row]');
             let cumulative = 0;
             let received = 0;
+            const exits = [];
             document.querySelectorAll('#entriesBody .e-qty').forEach(function(i) { received = round3(received + (parseFloat(i.value) || 0)); });
             let filledCount = 0;
             let totalFilled = 0;
@@ -733,6 +739,9 @@
                 if (idx === 0) return;
                 const qtyInput = row.querySelector('.inp-qty');
                 const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
+                const exD = row.querySelector('.inp-date').value;
+                const exT = row.querySelector('.inp-time').value || '00:00';
+                if (exD && qty > 0) exits.push({ dt: exD + 'T' + exT, qty: qty });
                 cumulative = round3(cumulative + qty);
                 if (qty > 0) { filledCount++; totalFilled += qty; }
                 const stock = round3(TANK_CAPACITY + received - cumulative);
@@ -752,6 +761,9 @@
                     } else if (stock <= 200) {
                         alertCell.classList.add('alert-danger');
                         alertCell.textContent = 'اطلب برميل جديد!';
+                    } else if (received > 0 && stock > 300 && stock <= 1000) {
+                        alertCell.classList.add('alert-warn');
+                        alertCell.textContent = 'وصل المخزون 1000 لتر';
                     } else if (stock <= 300) {
                         alertCell.classList.add('alert-warn');
                         alertCell.textContent = 'يحتاج مراقبة';
@@ -761,6 +773,28 @@
                     }
                 }
             });
+
+            const entryRows = Array.from(document.querySelectorAll('#entriesBody tr')).map(function(tr) {
+                const ed = tr.querySelector('.e-date').value;
+                return { tr: tr, dt: ed ? ed + 'T' + (tr.querySelector('.e-time').value || '00:00') : '' };
+            });
+            entryRows.forEach(function(e) { e.tr.querySelector('.e-cons').textContent = '—'; });
+            const dated = entryRows.filter(function(e) { return e.dt; }).sort(function(a, b) { return a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0; });
+            dated.forEach(function(e, i) {
+                const next = dated[i + 1] ? dated[i + 1].dt : null;
+                let sum = 0;
+                exits.forEach(function(x) { if (x.dt >= e.dt && (!next || x.dt < next)) sum = round3(sum + x.qty); });
+                e.tr.querySelector('.e-cons').textContent = sum;
+            });
+
+            const finalStock = round3(TANK_CAPACITY + received - cumulative);
+            const banner = document.getElementById('stockBanner');
+            if (received > 0 && finalStock <= 1000) {
+                banner.textContent = '⚠ تنبيه: المخزون المتبقي وصل ' + finalStock + ' لتر (1000 لتر أو أقل)';
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
 
             document.getElementById('stRows').textContent = rows.length;
             document.getElementById('stTotal').textContent = cumulative;
