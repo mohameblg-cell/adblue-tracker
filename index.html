@@ -172,9 +172,6 @@
         .col-bon { width: 70px; }
         .col-truck { width: 110px; }
         .col-km { width: 100px; }
-        .col-place { width: 130px; }
-        .col-type { width: 90px; }
-        .inp-type { border: none; background: transparent; font-family: inherit; font-size: 11px; text-align: center; font-weight: 700; }
         .col-qty { width: 80px; }
         .col-total { width: 95px; font-weight: 700; }
         .col-stock { width: 95px; font-weight: 700; }
@@ -435,9 +432,7 @@
                             <th class="col-bon">رقم البون</th>
                             <th class="col-truck">رقم الشاحنة</th>
                             <th class="col-km">الكيلومتراج</th>
-                            <th class="col-place">المكان / الوجهة</th>
-                            <th class="col-type">نوع العملية</th>
-                            <th class="col-qty">الكمية (لتر)</th>
+                            <th class="col-qty">الكمية المعبأة (لتر)</th>
                             <th class="col-total">إجمالي المستهلك (لتر)</th>
                             <th class="col-stock">المخزون المتبقي (لتر)</th>
                             <th class="col-alert">حالة التنبيه</th>
@@ -452,8 +447,6 @@
                             <td class="col-bon">&mdash;</td>
                             <td class="col-truck">&mdash;</td>
                             <td class="col-km">&mdash;</td>
-                            <td class="col-place">&mdash;</td>
-                            <td class="col-type">&mdash;</td>
                             <td class="col-qty">&mdash;</td>
                             <td class="col-total">0</td>
                             <td class="col-stock">1000</td>
@@ -467,8 +460,6 @@
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
                             <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
-                            <td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>
-                            <td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -485,8 +476,6 @@
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
                             <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
-                            <td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>
-                            <td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -503,8 +492,6 @@
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
                             <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
-                            <td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>
-                            <td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -521,8 +508,6 @@
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
                             <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
-                            <td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>
-                            <td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -539,8 +524,6 @@
                             <td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>
                             <td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>
                             <td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>
-                            <td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>
-                            <td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>
                             <td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>
                             <td class="col-total cell-total">0</td>
                             <td class="col-stock cell-stock">1000</td>
@@ -653,7 +636,6 @@
         function recalc() {
             const rows = document.querySelectorAll('#tableBody tr[data-row]');
             let cumulative = 0;
-            let received = 0;
             let filledCount = 0;
             let totalFilled = 0;
 
@@ -661,15 +643,9 @@
                 if (idx === 0) return;
                 const qtyInput = row.querySelector('.inp-qty');
                 const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
-                const typeSel = row.querySelector('.inp-type');
-                const isIn = typeSel && typeSel.value === 'in';
-                if (isIn) {
-                    received = round3(received + qty);
-                } else {
-                    cumulative = round3(cumulative + qty);
-                    if (qty > 0) { filledCount++; totalFilled += qty; }
-                }
-                const stock = round3(TANK_CAPACITY + received - cumulative);
+                cumulative = round3(cumulative + qty);
+                if (qty > 0) { filledCount++; totalFilled += qty; }
+                const stock = round3(TANK_CAPACITY - cumulative);
 
                 const cellTotal = row.querySelector('.cell-total');
                 const cellStock = row.querySelector('.cell-stock');
@@ -698,7 +674,7 @@
 
             document.getElementById('stRows').textContent = rows.length;
             document.getElementById('stTotal').textContent = cumulative;
-            document.getElementById('stStock').textContent = round3(TANK_CAPACITY + received - cumulative);
+            document.getElementById('stStock').textContent = round3(TANK_CAPACITY - cumulative);
             document.getElementById('stAvg').textContent = filledCount > 0 ? Math.round(totalFilled / filledCount) : 0;
 
             scheduleSave();
@@ -713,8 +689,6 @@
                 '<td class="col-bon"><input type="text" class="inp-bon" placeholder="رقم البون" oninput="scheduleSave()"></td>' +
                 '<td class="col-truck"><input type="text" class="inp-truck" placeholder="رقم الشاحنة" oninput="scheduleSave()"></td>' +
                 '<td class="col-km"><input type="number" class="inp-km" placeholder="0" min="0" oninput="scheduleSave()"></td>' +
-                '<td class="col-place"><input type="text" class="inp-place" placeholder="المكان / الوجهة" oninput="scheduleSave()"></td>' +
-                '<td class="col-type"><select class="inp-type" onchange="recalc()"><option value="out">خروج</option><option value="in">دخول</option></select></td>' +
                 '<td class="col-qty"><input type="number" class="inp-qty" placeholder="0" min="0" onchange="recalc()"></td>' +
                 '<td class="col-total cell-total">0</td>' +
                 '<td class="col-stock cell-stock">1000</td>' +
@@ -795,8 +769,6 @@
                 '<td class="col-bon">&mdash;</td>' +
                 '<td class="col-truck">&mdash;</td>' +
                 '<td class="col-km">&mdash;</td>' +
-                '<td class="col-place">&mdash;</td>' +
-                '<td class="col-type">&mdash;</td>' +
                 '<td class="col-qty">&mdash;</td>' +
                 '<td class="col-total">0</td>' +
                 '<td class="col-stock">1000</td>' +
@@ -827,8 +799,6 @@
                     bon: row.querySelector('.inp-bon') ? row.querySelector('.inp-bon').value : '',
                     truck: row.querySelector('.inp-truck') ? row.querySelector('.inp-truck').value : '',
                     km: row.querySelector('.inp-km') ? row.querySelector('.inp-km').value : '',
-                    place: row.querySelector('.inp-place') ? row.querySelector('.inp-place').value : '',
-                    type: row.querySelector('.inp-type') ? row.querySelector('.inp-type').value : 'out',
                     qty: row.querySelector('.inp-qty') ? row.querySelector('.inp-qty').value : ''
                 });
             });
@@ -881,8 +851,6 @@
                 '<td class="col-bon">&mdash;</td>' +
                 '<td class="col-truck">&mdash;</td>' +
                 '<td class="col-km">&mdash;</td>' +
-                '<td class="col-place">&mdash;</td>' +
-                '<td class="col-type">&mdash;</td>' +
                 '<td class="col-qty">&mdash;</td>' +
                 '<td class="col-total">0</td>' +
                 '<td class="col-stock">1000</td>' +
@@ -897,8 +865,6 @@
                 tr.querySelector('.inp-bon').value = rowData.bon || '';
                 tr.querySelector('.inp-truck').value = rowData.truck || '';
                 tr.querySelector('.inp-km').value = rowData.km || '';
-                tr.querySelector('.inp-place').value = rowData.place || '';
-                tr.querySelector('.inp-type').value = rowData.type || 'out';
                 tr.querySelector('.inp-qty').value = rowData.qty || '';
                 tbody.appendChild(tr);
             });
