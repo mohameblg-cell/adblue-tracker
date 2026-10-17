@@ -428,8 +428,8 @@
         </div>
         <div id="pdfArea">
             <div class="pdf-title">
-                <h2>جدول تتبع استهلاك الديزل الأزرق - l'AdBlue</h2>
-                <div class="date-line"><bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi> &mdash; تاريخ التقرير: <bdi id="repDate" style="unicode-bidi: isolate; direction: ltr;"></bdi></div>
+                <h2 id="docTitle">جدول تتبع استهلاك الديزل الأزرق - l'AdBlue</h2>
+                <div class="date-line"><bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi> &mdash; تاريخ التقرير: <bdi id="repDate" style="unicode-bidi: isolate; direction: ltr;"></bdi></div>
             </div>
             <div id="mainSection">
             <div class="table-tools no-pdf">
@@ -447,13 +447,13 @@
                             <th class="col-num">#</th>
                             <th class="col-date">التاريخ</th>
                             <th class="col-time">التوقيت</th>
-                            <th class="col-bon">رقم البون</th>
-                            <th class="col-truck">رقم الشاحنة</th>
+                            <th class="col-bon">رقم البون</th>
+                            <th class="col-truck">رقم الشاحنة</th>
                             <th class="col-km">الكيلومتراج</th>
-                            <th class="col-qty">الكمية المعبأة (لتر)</th>
-                            <th class="col-total">إجمالي المستهلك (لتر)</th>
-                            <th class="col-stock">المخزون المتبقي (لتر)</th>
-                            <th class="col-alert">حالة التنبيه</th>
+                            <th class="col-qty">الكمية المعبأة (لتر)</th>
+                            <th class="col-total">إجمالي المستهلك (لتر)</th>
+                            <th class="col-stock">المخزون المتبقي (لتر)</th>
+                            <th class="col-alert">حالة التنبيه</th>
                             <th class="col-actions">إجراءات</th>
                         </tr>
                     </thead>
@@ -557,7 +557,7 @@
             </div>
             <div class="entries-section" id="entriesSection">
                 <div class="entries-head">
-                    <h3>جدول دخول المخزون (AdBlue)</h3>
+                    <h3>جدول دخول المخزون (AdBlue)</h3>
                     <div class="table-tools no-pdf">
                         <button class="btn btn-green" onclick="addEntry()">+ إضافة صف</button>
                         <button class="btn btn-red" onclick="removeEntry()">- حذف صف</button>
@@ -572,14 +572,14 @@
                         <thead>
                             <tr>
                                 <th class="col-num">#</th>
-                                <th>تاريخ الدخول</th>
-                                <th>توقيت الدخول</th>
-                                <th>الكمية الداخلة (لتر)</th>
-                                <th>تاريخ الاستهلاك</th>
-                                <th>توقيت الاستهلاك</th>
-                                <th>الكمية المستهلكة (لتر)</th>
-                                <th>المتبقي (لتر)</th>
-                                <th>المكان / الوجهة</th>
+                                <th>تاريخ الدخول</th>
+                                <th>توقيت الدخول</th>
+                                <th>الكمية الداخلة (لتر)</th>
+                                <th>تاريخ الاستهلاك</th>
+                                <th>توقيت الاستهلاك</th>
+                                <th>الكمية المستهلكة (لتر)</th>
+                                <th>المتبقي (لتر)</th>
+                                <th>المكان / الوجهة</th>
                                 <th class="col-actions">إجراءات</th>
                             </tr>
                         </thead>
@@ -595,7 +595,7 @@
                                 <td class="col-actions"></td>
                             </tr>
                             <tr>
-                                <td colspan="3">حالة التنبيه (إجمالي المخزون)</td>
+                                <td colspan="3">حالة التنبيه (إجمالي المخزون)</td>
                                 <td colspan="6" id="tfAlert">—</td>
                                 <td class="col-actions"></td>
                             </tr>
@@ -1137,8 +1137,16 @@
             event.target.value = '';
         }
 
+        function setDocTitle(which) {
+            const h = document.getElementById('docTitle');
+            const old = h.innerHTML;
+            if (which === 'entries') h.innerHTML = 'تتبع مخزون <bdi style="unicode-bidi: isolate; direction: ltr;">Diesel Blue</bdi>';
+            return function() { h.innerHTML = old; };
+        }
+
         function printTable(which) {
-            const cleanup = function() { document.body.classList.remove('print-main', 'print-entries'); };
+            const restoreTitle = setDocTitle(which);
+            const cleanup = function() { document.body.classList.remove('print-main', 'print-entries'); restoreTitle(); };
             document.body.classList.add('print-' + which);
             window.addEventListener('afterprint', cleanup, { once: true });
             setTimeout(cleanup, 60000);
@@ -1153,6 +1161,9 @@
             if (which === 'main') hideEls.push(document.getElementById('entriesSection'));
             if (which === 'entries') hideEls.push(document.getElementById('mainSection'));
             hideEls.forEach(function(e) { e.style.display = 'none'; });
+            const restoreTitle = setDocTitle(which);
+            const savedScroll = window.pageYOffset;
+            window.scrollTo(0, 0);
 
             // إخفاء النص التوضيحي (placeholder) مؤقتاً فالخانات الفارغة باش ما يبانش فالـ PDF
             const inputs = element.querySelectorAll('input');
@@ -1170,7 +1181,7 @@
                 margin: [8, 8, 8, 8],
                 filename: 'AdBlue_Azeddine_' + (which === 'entries' ? 'Entrees_' : which === 'main' ? 'Consommation_' : '') + new Date().toISOString().split('T')[0] + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false },
+                html2canvas: { scrollX: 0, scrollY: 0, scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
                 pagebreak: { mode: ['css'], avoid: 'tr' }
             };
@@ -1179,6 +1190,8 @@
                 inputs.forEach(function(inp, i) { inp.placeholder = savedPlaceholders[i]; });
                 actionCells.forEach(function(c) { c.style.display = ''; });
                 hideEls.forEach(function(e) { e.style.display = ''; });
+                restoreTitle();
+                window.scrollTo(0, savedScroll);
             }
 
             html2pdf().set(opt).from(element).save()
