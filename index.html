@@ -967,11 +967,27 @@
         }
 
         /* ===== SAVE / LOAD (JSONBin.io - تخزين أونلاين حقيقي) ===== */
+        let dirty = false, pendingSave = false, lastSavedCore = '', lastRemoteCheck = 0, retryTimer = null, retryCount = 0;
+        const BACKUP_KEY = 'adblue_tracker_backup_v2';
+
+        function coreOf(p) { return JSON.stringify({ rows: p.rows, entries: p.entries || [] }); }
+        function backupLocal(p) { try { localStorage.setItem(BACKUP_KEY, JSON.stringify(p)); } catch (e) {} }
+        function errMessage(prefix, e) {
+            const m = /HTTP (\d+)/.exec((e && e.message) || '');
+            const code = m ? Number(m[1]) : 0;
+            if (code === 429) return '⚠ ' + prefix + ': تجاوزتي عدد الطلبات المجانية ديال JSONBin (429)';
+            if (code === 401 || code === 403) return '⚠ ' + prefix + ': المفتاح غير مقبول (' + code + ')';
+            if (code) return '⚠ ' + prefix + ' (HTTP ' + code + ')';
+            return '⚠ ' + prefix + '، تحقق من الاتصال';
+        }
+
         function scheduleSave() {
             if (isLoadingInitial) return; // don't save while we're still loading initial data
+            dirty = true;
+            retryCount = 0;
             clearTimeout(saveTimer);
             showSyncIndicator('جاري الحفظ...', 'saving');
-            saveTimer = setTimeout(saveData, 700);
+            saveTimer = setTimeout(saveData, 1500);
         }
 
         function collectData() {
@@ -992,12 +1008,21 @@
         }
 
         async function saveData() {
-            if (isSyncing) return;
+            if (isSyncing) { pendingSave = true; return; }
+            const payload = collectData();
+            const core = coreOf(payload);
+            backupLocal(payload);
+            if (core === lastSavedCore) {
+                dirty = false;
+                showSyncIndicator('✓ تم الحفظ أونلاين', 'saved');
+                return;
+            }
+            dirty = true;
             isSyncing = true;
             try {
-                const payload = collectData();
                 const res = await fetch(JSONBIN_URL, {
                     method: 'PUT',
+                    keepalive: true,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Master-Key': JSONBIN_MASTER_KEY
@@ -1005,12 +1030,23 @@
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
+                lastSavedCore = core;
+                dirty = false;
+                retryCount = 0;
                 showSyncIndicator('✓ تم الحفظ أونلاين', 'saved');
             } catch (e) {
                 console.error('تعذر الحفظ أونلاين:', e);
-                showSyncIndicator('⚠ فشل الحفظ، تحقق من الاتصال', 'error');
+                showSyncIndicator(errMessage('فشل الحفظ', e), 'error');
+                const m = /HTTP (\d+)/.exec((e && e.message) || '');
+                const code = m ? Number(m[1]) : 0;
+                if (![401, 403, 429].includes(code) && retryCount < 3) {
+                    retryCount++;
+                    clearTimeout(retryTimer);
+                    retryTimer = setTimeout(saveData, 30000);
+                }
             } finally {
                 isSyncing = false;
+                if (pendingSave) { pendingSave = false; saveData(); }
             }
         }
 
@@ -1021,7 +1057,7 @@
             el.classList.add('show', 'ind-' + type);
             clearTimeout(el._hideTimer);
             if (type !== 'saving') {
-                el._hideTimer = setTimeout(() => el.classList.remove('show'), 2000);
+                el._hideTimer = setTimeout(() => el.classList.remove('show'), type === 'error' ? 8000 : 2000);
             }
         }
 
@@ -1063,8 +1099,21 @@
             isLoadingInitial = wasLoading;
         }
 
+        function restoreBackup() {
+            try {
+                const raw = localStorage.getItem(BACKUP_KEY);
+                if (!raw) return false;
+                const p = JSON.parse(raw);
+                if (!p || !Array.isArray(p.rows)) return false;
+                isLoadingInitial = true;
+                applyData(p);
+                return true;
+            } catch (e) { return false; }
+        }
+
         async function loadData(which) {
             showSyncIndicator('جاري تحميل البيانات...', 'saving');
+            lastRemoteCheck = Date.now();
             try {
                 const res = await fetch(JSONBIN_URL + '/latest', {
                     method: 'GET',
@@ -1075,36 +1124,53 @@
                 const payload = json.record;
                 isLoadingInitial = true;
                 if (which === 'entries') { buildEntries(payload.entries || []); recalc(); } else { applyData(payload, which); }
+                lastSavedCore = which ? coreOf(payload) : coreOf(collectData());
+                dirty = which ? (coreOf(collectData()) !== lastSavedCore) : false;
+                backupLocal(collectData());
                 showSyncIndicator('✓ تم التحميل من الأونلاين', 'saved');
             } catch (e) {
                 console.error('تعذر تحميل البيانات الأونلاين:', e);
-                showSyncIndicator('⚠ تعذر الاتصال بالخادم', 'error');
+                if (!which && restoreBackup()) {
+                    showSyncIndicator(errMessage('تعذر الاتصال', e) + ' — عرضت آخر نسخة محفوظة فهاد الجهاز', 'error');
+                } else {
+                    showSyncIndicator(errMessage('تعذر التحميل', e), 'error');
+                }
             } finally {
                 isLoadingInitial = false;
             }
         }
 
-        // مزامنة دورية كل 15 ثانية باش تبان التعديلات لي دارها شخص آخر من جهاز آخر
-        setInterval(function() {
-            if (isSyncing || document.activeElement.tagName === 'INPUT') return;
-            fetch(JSONBIN_URL + '/latest', {
-                method: 'GET',
-                headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
-            }).then(function(res) { return res.ok ? res.json() : null; })
-              .then(function(json) {
-                  if (!json || !json.record) return;
-                  const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); };
-                  const remoteStr = JSON.stringify([json.record.rows, ne(json.record.entries)]);
-                  const localSnap = collectData();
-                  const localStr = JSON.stringify([localSnap.rows, ne(localSnap.entries)]);
-                  if (remoteStr !== localStr) {
-                      isLoadingInitial = true;
-                      applyData(json.record);
-                      isLoadingInitial = false;
-                      showSyncIndicator('↻ تم التحديث من جهاز آخر', 'saved');
-                  }
-              }).catch(function() {});
-        }, 15000);
+        // لا مزامنة كل بضع ثواني (كانت كتستهلك الطلبات المجانية ديال JSONBin):
+        // التحديث كيتدار غير منين ترجع للصفحة (كل دقيقتين على الأكثر) وبلا تعديلات غير محفوظة.
+        function refreshIfRemoteChanged() {
+            lastRemoteCheck = Date.now();
+            fetch(JSONBIN_URL + '/latest', { method: 'GET', headers: { 'X-Master-Key': JSONBIN_MASTER_KEY } })
+                .then(function(res) { return res.ok ? res.json() : null; })
+                .then(function(json) {
+                    if (!json || !json.record || dirty || isSyncing) return;
+                    const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); };
+                    const remoteStr = JSON.stringify([json.record.rows, ne(json.record.entries)]);
+                    const localSnap = collectData();
+                    const localStr = JSON.stringify([localSnap.rows, ne(localSnap.entries)]);
+                    if (remoteStr !== localStr) {
+                        isLoadingInitial = true;
+                        applyData(json.record);
+                        isLoadingInitial = false;
+                        lastSavedCore = coreOf(collectData());
+                        showSyncIndicator('↻ تم التحديث من جهاز آخر', 'saved');
+                    }
+                }).catch(function() {});
+        }
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                if (dirty) { clearTimeout(saveTimer); saveData(); }
+                return;
+            }
+            if (dirty || isSyncing || Date.now() - lastRemoteCheck < 120000) return;
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+            refreshIfRemoteChanged();
+        });
 
         function exportBackup() {
             const payload = collectData();
