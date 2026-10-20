@@ -978,7 +978,7 @@
         }
 
         /* ===== SAVE / LOAD (JSONBin.io - تخزين أونلاين حقيقي) ===== */
-        let dirty = false, pendingSave = false, lastSavedCore = '', lastRemoteCheck = 0, retryTimer = null, retryCount = 0;
+        let remoteLoaded = false, dirty = false, pendingSave = false, lastSavedCore = '', lastRemoteCheck = 0, retryTimer = null, retryCount = 0;
         const BACKUP_KEY = PAGE === 'main' ? 'adblue_tracker_backup_v2' : 'adblue_tracker_backup_' + PAGE;
 
         function neList(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); }
@@ -1025,6 +1025,10 @@
         }
 
         async function saveData() {
+            if (ONLINE && !remoteLoaded) {
+                showSyncIndicator('⚠ ما تحملاتش البيانات من الأونلاين، الحفظ موقوف باش ما تتمسحش البيانات القديمة', 'error');
+                return;
+            }
             if (isSyncing) { pendingSave = true; return; }
             const payload = pagePayload();
             const core = coreOf(payload);
@@ -1157,6 +1161,7 @@
                 lastSavedCore = which ? coreOf(payload) : coreOf(collectData());
                 dirty = which ? (coreOf(collectData()) !== lastSavedCore) : false;
                 backupLocal(collectData());
+                remoteLoaded = true;
                 showSyncIndicator('✓ تم التحميل من الأونلاين', 'saved');
             } catch (e) {
                 console.error('تعذر تحميل البيانات الأونلاين:', e);
