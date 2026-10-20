@@ -367,6 +367,10 @@
 
         .stock-banner { margin: 12px 20px; padding: 12px 16px; border-radius: 8px; background: #fffaf0; border-right: 4px solid #dd6b20; color: #c05621; font-weight: 800; font-size: 13px; }
 
+        body[data-page="main"] #entriesSection { display: none !important; }
+        body[data-page="entries"] #mainSection { display: none !important; }
+        body[data-page="entries"] .stats { display: none !important; }
+
         /* ===== MOBILE FIXES ===== */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -402,7 +406,7 @@
 <base target="_blank">
 <base target="_blank">
 </head>
-<body>
+<body data-page="main">
     <div class="loading" id="loading"><div class="spinner"></div><p>جاري إنشاء ملف PDF...</p></div>
     <div class="save-indicator" id="saveIndicator">✓ تم الحفظ</div>
     <div class="install-modal-overlay" id="installModal">
@@ -420,6 +424,7 @@
             <div class="sub"><bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi> &mdash; سعة الخزان: 1000 لتر</div>
         </div>
         <div class="toolbar">
+            <a class="btn" style="background:#4a5568;color:white;text-decoration:none;" href="entrees.html" target="_self">جدول دخول المخزون →</a>
             <button class="btn" style="background:#1a365d;color:white;" onclick="showInstallGuide()">📲 تثبيت كتطبيق</button>
         </div>
         <div class="info-box">
@@ -614,7 +619,7 @@
             <div class="stat-card"><div class="val" id="stRows">6</div><div class="lab">عدد السجلات</div></div>
             <div class="stat-card"><div class="val" id="stTotal">0</div><div class="lab">إجمالي المستهلك</div></div>
             <div class="stat-card"><div class="val" id="stStock">1000</div><div class="lab">المخزون المتبقي</div></div>
-            <div class="stat-card"><div class="val" id="stIn">0</div><div class="lab">إجمالي الداخل</div></div>
+            <div class="stat-card" style="display:none;"><div class="val" id="stIn">0</div><div class="lab">إجمالي الداخل</div></div>
             <div class="stat-card"><div class="val" id="stAvg">0</div><div class="lab">متوسط التعبئة</div></div>
         </div>
         <div class="app-foot">
@@ -685,9 +690,15 @@
         }
 
         /* ===== JSONBin.io CONFIG (تخزين أونلاين حقيقي) ===== */
-        const JSONBIN_BIN_ID = '6a528244da38895dfe5017ae';
-        const JSONBIN_MASTER_KEY = '$2a$10$GYDgMbq.Zms.P5idbZxrW.EdVEz62F2yGZNaqpW3WYD1VmtYo68VS';
-        const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+        const PAGE = document.body.getAttribute('data-page') || 'main';
+        const BINS = {
+            main: { id: '6a528244da38895dfe5017ae', key: '$2a$10$GYDgMbq.Zms.P5idbZxrW.EdVEz62F2yGZNaqpW3WYD1VmtYo68VS' },
+            entries: { id: '', key: '' }
+        };
+        const CFG = BINS[PAGE];
+        const ONLINE = !!(CFG.id && CFG.key);
+        const JSONBIN_MASTER_KEY = CFG.key;
+        const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + CFG.id;
 
         (function() {
             const d = new Date();
@@ -968,9 +979,14 @@
 
         /* ===== SAVE / LOAD (JSONBin.io - تخزين أونلاين حقيقي) ===== */
         let dirty = false, pendingSave = false, lastSavedCore = '', lastRemoteCheck = 0, retryTimer = null, retryCount = 0;
-        const BACKUP_KEY = 'adblue_tracker_backup_v2';
+        const BACKUP_KEY = PAGE === 'main' ? 'adblue_tracker_backup_v2' : 'adblue_tracker_backup_' + PAGE;
 
-        function coreOf(p) { return JSON.stringify({ rows: p.rows, entries: p.entries || [] }); }
+        function neList(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); }
+        function coreOf(p) { return PAGE === 'entries' ? JSON.stringify({ entries: neList(p.entries) }) : JSON.stringify({ rows: p.rows }); }
+        function pagePayload() {
+            const p = collectData();
+            return PAGE === 'entries' ? { entries: p.entries, savedAt: p.savedAt } : { rowCount: p.rowCount, rows: p.rows, savedAt: p.savedAt };
+        }
         function backupLocal(p) { try { localStorage.setItem(BACKUP_KEY, JSON.stringify(p)); } catch (e) {} }
         function errMessage(prefix, e) {
             const m = /HTTP (\d+)/.exec((e && e.message) || '');
@@ -1010,12 +1026,18 @@
 
         async function saveData() {
             if (isSyncing) { pendingSave = true; return; }
-            const payload = collectData();
+            const payload = pagePayload();
             const core = coreOf(payload);
             backupLocal(payload);
             if (core === lastSavedCore) {
                 dirty = false;
                 showSyncIndicator('✓ تم الحفظ أونلاين', 'saved');
+                return;
+            }
+            if (!ONLINE) {
+                lastSavedCore = core;
+                dirty = false;
+                showSyncIndicator('✓ تم الحفظ فهاد الجهاز', 'saved');
                 return;
             }
             dirty = true;
@@ -1063,6 +1085,7 @@
         }
 
         function applyData(payload, only) {
+            if (PAGE === 'entries') { if (payload) { buildEntries(payload.entries || []); recalc(); } return; }
             if (!payload || !Array.isArray(payload.rows)) return;
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -1092,7 +1115,6 @@
                 tbody.appendChild(tr);
             });
 
-            if (only !== 'main') buildEntries(payload.entries || []);
             rowCount = payload.rows.length;
             const wasLoading = isLoadingInitial;
             isLoadingInitial = true;
@@ -1115,6 +1137,13 @@
         async function loadData(which) {
             showSyncIndicator('جاري تحميل البيانات...', 'saving');
             lastRemoteCheck = Date.now();
+            if (!ONLINE) {
+                if (!which) { restoreBackup(); }
+                isLoadingInitial = false;
+                lastSavedCore = coreOf(collectData());
+                showSyncIndicator('ℹ التخزين الأونلاين غير مفعل هنا: البيانات كتتحفظ فهاد الجهاز فقط', 'error');
+                return;
+            }
             try {
                 const res = await fetch(JSONBIN_URL + '/latest', {
                     method: 'GET',
@@ -1144,15 +1173,14 @@
         // لا مزامنة كل بضع ثواني (كانت كتستهلك الطلبات المجانية ديال JSONBin):
         // التحديث كيتدار غير منين ترجع للصفحة (كل دقيقتين على الأكثر) وبلا تعديلات غير محفوظة.
         function refreshIfRemoteChanged() {
+            if (!ONLINE) return;
             lastRemoteCheck = Date.now();
             fetch(JSONBIN_URL + '/latest', { method: 'GET', headers: { 'X-Master-Key': JSONBIN_MASTER_KEY } })
                 .then(function(res) { return res.ok ? res.json() : null; })
                 .then(function(json) {
                     if (!json || !json.record || dirty || isSyncing) return;
-                    const ne = function(l) { return (l || []).filter(function(e) { return e.date || e.time || e.qty || e.cons || e.cdate || e.ctime || e.place; }); };
-                    const remoteStr = JSON.stringify([json.record.rows, ne(json.record.entries)]);
-                    const localSnap = collectData();
-                    const localStr = JSON.stringify([localSnap.rows, ne(localSnap.entries)]);
+                    const remoteStr = coreOf(json.record);
+                    const localStr = coreOf(collectData());
                     if (remoteStr !== localStr) {
                         isLoadingInitial = true;
                         applyData(json.record);
@@ -1275,6 +1303,22 @@
             if (e.ctrlKey && e.key === 'p') { /* allow default print */ }
         });
 
+        function initPage() {
+            const ib = document.querySelector('.info-box');
+            if (PAGE === 'entries') {
+                const T = 'تتبع مخزون <bdi style="unicode-bidi: isolate; direction: ltr;">Diesel Blue</bdi>';
+                document.title = 'تتبع مخزون Diesel Blue';
+                document.querySelector('.app-header h1').innerHTML = T;
+                document.getElementById('docTitle').innerHTML = T;
+                document.querySelector('.app-header .sub').innerHTML = '<bdi style="unicode-bidi: isolate; direction: ltr;">AZEDDINE BELGAOUI G4S</bdi>';
+                ib.innerHTML = '<strong>كيفية الاستخدام:</strong> سجل فكل صف الكمية الداخلة (بتاريخها وتوقيتها)، والكمية المستهلكة (بتاريخها وتوقيتها)، والمكان / الوجهة. كيتحسب <strong>المتبقي</strong> و<strong>التنبيه الإجمالي</strong> تلقائياً.';
+            }
+            if (!ONLINE) {
+                ib.innerHTML += '<br><strong>تنبيه:</strong> التخزين الأونلاين غير مفعل لهاد الصفحة، والبيانات كتتحفظ فهاد الجهاز فقط.';
+            }
+        }
+
+        initPage();
         buildEntries([]);
         loadData();
         recalc();
