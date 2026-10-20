@@ -976,7 +976,8 @@
             const m = /HTTP (\d+)/.exec((e && e.message) || '');
             const code = m ? Number(m[1]) : 0;
             if (code === 429) return '⚠ ' + prefix + ': تجاوزتي عدد الطلبات المجانية ديال JSONBin (429)';
-            if (code === 401 || code === 403) return '⚠ ' + prefix + ': المفتاح غير مقبول (' + code + ')';
+            if (code === 403) return '⚠ ' + prefix + ': JSONBin رفض الطلب (403)، غالباً الطلبات المجانية سالات';
+            if (code === 401) return '⚠ ' + prefix + ': المفتاح غير مقبول (401)';
             if (code) return '⚠ ' + prefix + ' (HTTP ' + code + ')';
             return '⚠ ' + prefix + '، تحقق من الاتصال';
         }
